@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/jackc/pgx/v5"
+	"logistruct-backend/internal/rustcore"
 )
 
 // This file will not be regenerated automatically.
