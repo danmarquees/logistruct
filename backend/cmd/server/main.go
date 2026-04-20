@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"logistruct-backend/graph"
 	"logistruct-backend/internal/rustcore"
@@ -22,9 +23,18 @@ func main() {
 		dsn = "postgres://logistruct:logistruct@postgres:5432/logistruct?sslmode=disable"
 	}
 
-	conn, err := pgx.Connect(context.Background(), dsn)
+	var conn *pgx.Conn
+	var err error
+	for i := 0; i < 10; i++ {
+		conn, err = pgx.Connect(context.Background(), dsn)
+		if err == nil {
+			break
+		}
+		log.Printf("Aguardando Postgres iniciar (tentativa %d/10)...", i+1)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("Falha ao conectar no DB via pgx: %v\n", err)
+		log.Fatalf("Falha crítica ao conectar no DB: %v\n", err)
 	}
 	defer conn.Close(context.Background())
 
