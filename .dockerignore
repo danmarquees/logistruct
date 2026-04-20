@@ -1,0 +1,8 @@
+.git
+.github
+._*
+.DS_Store
+core/target/
+core/._target
+backend/logistruct-backend
+web/node_modules/
