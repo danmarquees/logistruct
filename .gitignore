@@ -1,6 +1,45 @@
-vendor/
-bin/
-target/
+# Mac OS
+.DS_Store
+._*
+
+# IDEs / Edição
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# Arquivos de Ambiente
 *.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Docker
+postgres_data/
+docker-compose.override.yml
+
+# Backend (Go)
+/backend/logistruct-backend
+/backend/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+
+# Core (Rust)
+/core/target/
+**/*.rs.bk
+
+# Frontend (Vite / React / Node)
+node_modules/
+/web/node_modules/
+/web/dist/
+/web/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
