@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package logistruct;
+
+option go_package = "logistruct/internal/api/grpc";
+
+service LogistructService {
+  rpc CalculateSafetyStock (SafetyStockRequest) returns (SafetyStockResponse);
+}
+
+message SafetyStockRequest {
+  int32 max_sales = 1;
+  int32 max_lead_time = 2;
+  int32 avg_sales = 3;
+  int32 avg_lead_time = 4;
+}
+
+message SafetyStockResponse {
+  int32 safety_stock = 1;
+}
