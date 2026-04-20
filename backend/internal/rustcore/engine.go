@@ -1,7 +1,7 @@
 package rustcore
 
 /*
-#cgo LDFLAGS: -L${SRCDIR}/../../../../core/target/release -llogistruct_core -Wl,-rpath,${SRCDIR}/../../../../core/target/release
+#cgo LDFLAGS: -L${SRCDIR}/../../../core/target/release -llogistruct_core -Wl,-rpath,${SRCDIR}/../../../core/target/release
 #include <stdint.h>
 
 int32_t calculate_safety_stock(int32_t max_sales, int32_t max_lead_time, int32_t avg_sales, int32_t avg_lead_time);
