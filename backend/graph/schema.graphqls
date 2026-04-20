@@ -1,0 +1,43 @@
+scalar JSONB
+scalar Time
+
+type Categoria {
+    id: ID!
+    nome: String!
+    descricao: String
+    createdAt: Time!
+}
+
+type Insumo {
+    id: ID!
+    nome: String!
+    categoriaId: Int!
+    maxSales: Int!
+    maxLeadTime: Int!
+    avgSales: Int!
+    avgLeadTime: Int!
+    safetyStock: Int! # Calculado em tempo de execução via Rust
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type Movimentacao {
+    id: ID!
+    insumoId: Int!
+    tipo: String!
+    quantidade: Int!
+    saldoResultante: Int!
+    metadados: JSONB
+    dataMovimentacao: Time!
+}
+
+type Query {
+    saldo(insumoId: Int!): Int!
+    historico(insumoId: Int!): [Movimentacao!]!
+    insumos: [Insumo!]!
+}
+
+type Mutation {
+    createInsumo(nome: String!, categoriaId: Int!, maxSales: Int!, maxLeadTime: Int!, avgSales: Int!, avgLeadTime: Int!): Insumo!
+    registerMovement(insumoId: Int!, tipo: String!, quantidade: Int!, metadados: JSONB): Movimentacao!
+}

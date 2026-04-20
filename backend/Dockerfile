@@ -1,4 +1,4 @@
-FROM golang:1.22-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -17,6 +17,9 @@ WORKDIR /app/backend
 
 # Initialize go modules if not already
 RUN go mod tidy
+
+# Gerar GraphQL via gqlgen
+RUN go run github.com/99designs/gqlgen generate
 
 # Build Go application
 RUN CGO_ENABLED=1 go build -ldflags="-s -w" -o logistruct-backend ./cmd/server

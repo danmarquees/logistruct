@@ -1,116 +1,48 @@
 package main
 
-/*
-#cgo LDFLAGS: -L${SRCDIR}/../../../core/target/release -llogistruct_core -Wl,-rpath,${SRCDIR}/../../../core/target/release
-#include <stdint.h>
-
-int32_t calculate_safety_stock(int32_t max_sales, int32_t max_lead_time, int32_t avg_sales, int32_t avg_lead_time);
-*/
-import "C"
-
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
-	"github.com/gin-gonic/gin"
-	"logistruct-backend/internal/domain"
-	"logistruct-backend/internal/repository"
+	"logistruct-backend/graph"
+	"logistruct-backend/internal/rustcore"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/jackc/pgx/v5"
 )
 
-func calculateSafetyStockRust(maxSales, maxLeadTime, avgSales, avgLeadTime int32) int32 {
-	return int32(C.calculate_safety_stock(
-		C.int32_t(maxSales),
-		C.int32_t(maxLeadTime),
-		C.int32_t(avgSales),
-		C.int32_t(avgLeadTime),
-	))
-}
-
 func main() {
-	log.Println("LogiStruct: Iniciando API de Alta Performance...")
+	log.Println("LogiStruct: Iniciando GQLGEN GraphQL Server...")
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://logistruct:logistruct@localhost:5432/logistruct?sslmode=disable"
+		dsn = "postgres://logistruct:logistruct@postgres:5432/logistruct?sslmode=disable"
 	}
 
-	repo, err := repository.NewPostgresRepository(dsn)
+	conn, err := pgx.Connect(context.Background(), dsn)
 	if err != nil {
-		log.Fatalf("Falha ao conectar no DB: %v", err)
+		log.Fatalf("Falha ao conectar no DB via pgx: %v\n", err)
+	}
+	defer conn.Close(context.Background())
+
+	// Inicializa o Resolver raiz
+	resolver := &graph.Resolver{
+		DB:         conn,
+		RustEngine: &rustcore.Engine{},
 	}
 
-	r := gin.Default()
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
-	// CORS Config
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
-
-	r.GET("/api/health", func(c *gin.Context) {
-		dbStatus := "UP"
-		if err := repo.Ping(); err != nil {
-			dbStatus = "DOWN"
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "UP", "database": dbStatus})
-	})
-
-	r.GET("/api/insumos", func(c *gin.Context) {
-		insumos, err := repo.GetInsumos()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		// Calculate safety stock dynamically via Rust
-		for i := range insumos {
-			insumos[i].SafetyStock = calculateSafetyStockRust(
-				insumos[i].MaxSales, 
-				insumos[i].MaxLeadTime, 
-				insumos[i].AvgSales, 
-				insumos[i].AvgLeadTime,
-			)
-		}
-		c.JSON(http.StatusOK, insumos)
-	})
-
-	r.POST("/api/insumos", func(c *gin.Context) {
-		var i domain.Insumo
-		if err := c.ShouldBindJSON(&i); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if err := repo.CreateInsumo(&i); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusCreated, i)
-	})
-
-	r.DELETE("/api/insumos/:id", func(c *gin.Context) {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "id invalido"})
-			return
-		}
-		if err := repo.DeleteInsumo(id); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "deleted"})
-	})
+	http.Handle("/", playground.Handler("LogiStruct GraphQL Playground", "/query"))
+	http.Handle("/query", srv)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	r.Run(":" + port)
+	log.Printf("Conecte-se em http://localhost:%s/ para o GraphQL Playground", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
